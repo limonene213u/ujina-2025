@@ -1,0 +1,62 @@
+#version: '3.8'
+
+services:
+  # Apache + PHP 8.4
+  web:
+    build: .
+    container_name: lamp_web_cal-front
+    restart: unless-stopped
+    ports:
+      - "88:80"
+    volumes:
+      - ./html:/var/www/html
+      - ./apache/000-default.conf:/etc/apache2/sites-available/000-default.conf
+      - ./php/php.ini:/usr/local/etc/php/php.ini
+    depends_on:
+      - db
+    networks:
+      - lamp-network
+
+  # MySQL 8.0
+  db:
+    image: mysql:8.0
+    container_name: lamp_mysql_cal-front
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: lamp_password
+      MYSQL_ROOT_HOST: '%'
+      MYSQL_DATABASE: lamp_db
+      MYSQL_USER: lamp_admin
+      MYSQL_PASSWORD: lamp_password
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - lamp-network
+
+  # phpMyAdmin
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: lamp_phpmyadmin_cal-front
+    restart: unless-stopped
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: lamp_password
+      MYSQL_ROOT_PASSWORD: lamp_password
+    ports:
+      - "81:80"
+    depends_on:
+      - db
+    networks:
+      - lamp-network
+
+volumes:
+  mysql_data:
+
+networks:
+  lamp-network:
+    driver: bridge
